@@ -299,7 +299,7 @@ select * from post1988
 
 /* Medals */
 create view medals as
-select region, Sport, Event, Medals_pre1988/(4*Ath_Count_pre1988/den) as Pre1988_Medal_Avg, Medals_1988/(Ath_Count_1988/den) as 1988_Medals, Medals_post1988/(4*Ath_Count_Post1988/den) as Post1988_Medal_Avg from (
+select region, Sport, Event, Medals_pre1988/(Ath_Count_pre1988) as Pre1988_Medal_Avg, Medals_1988/(Ath_Count_1988) as 1988_Medals, Medals_post1988/(Ath_Count_Post1988) as Post1988_Medal_Avg from (
 select df2.region, df2.Sport, df2.Event, df2.Medals_pre1988, df2.Medals_1988, df2.Medals_post1988, df2.Ath_Count_pre1988,  df2.Ath_Count_1988,  df2.Ath_Count_post1988, event_den.den from
   (select df1.region, df1.Sport, df1.Event, df1.Medals_pre1988, df1.Ath_Count_pre1988, df1.Ath_Count_1988, df1.Medals_1988, post1988.Medals_post1988, post1988.Ath_Count_post1988 from
     (select yyc.region, yyc.Sport, yyc.Event, yyc.Ath_Count_1988,  pre1988.Medals_pre1988, pre1988.Ath_Count_pre1988, yyc.Medals_1988
@@ -319,14 +319,14 @@ select * from medals limit 10
 /* Medal Growth (Question 1) */
 select region, sum(1988_Medals)+sum(Pre1988_Medal_Avg) as PreMed, sum(Post1988_Medal_Avg) as PostMed, sum(Post1988_Medal_Avg)-(0.2*sum(1988_Medals)+0.8*sum(Pre1988_Medal_Avg)) as Medal_Growth  from Medals
 group by region
-order by Medal_Growth asc
+order by Medal_Growth desc
 
 -- COMMAND ----------
 
 /* Medal Growth (Question 2) */
 select region, sport, sum(1988_Medals)+sum(Pre1988_Medal_Avg) as PreMed, sum(Post1988_Medal_Avg) as PostMed, sum(Post1988_Medal_Avg)-(0.2*sum(1988_Medals)+0.8*sum(Pre1988_Medal_Avg)) as Medal_Growth  from Medals
 group by region, sport
-order by Medal_Growth asc
+order by Medal_Growth desc
 
 -- COMMAND ----------
 
@@ -420,4 +420,61 @@ select df2.region, Sport, sum(df2.Medals_pre1988)+sum(df2.Medals_1988), sum(df2.
     join post1988 on df1.region=post1988.region and df1.Event=post1988.Event) df2
 join event_den on df2.Event=event_den.Event
 group by region, Sport
-having region="USA"
+having region="USSR/Ex-Soviet"
+order by Sport
+
+
+-- COMMAND ----------
+
+select df2.region, Sport, sum(df2.Medals_pre1988)/sum(df2.Ath_Count_pre1988), sum(df2.Medals_1988)/sum(df2.Ath_Count_1988), sum(df2.Medals_post1988)/sum(df2.Ath_Count_post1988) from
+  (select df1.region, df1.Sport, df1.Event, df1.Medals_pre1988, df1.Ath_Count_pre1988, df1.Ath_Count_1988, df1.Medals_1988, post1988.Medals_post1988, post1988.Ath_Count_post1988 from
+    (select yyc.region, yyc.Sport, yyc.Event, yyc.Ath_Count_1988,  pre1988.Medals_pre1988, pre1988.Ath_Count_pre1988, yyc.Medals_1988
+    from yyc
+    join pre1988 on yyc.region=pre1988.region and yyc.Event=pre1988.Event) df1
+    join post1988 on df1.region=post1988.region and df1.Event=post1988.Event) df2
+join event_den on df2.Event=event_den.Event
+group by region, Sport
+having region="USSR/Ex-Soviet"
+
+
+-- COMMAND ----------
+
+select   sum(df2.Medals_pre1988), sum(df2.Ath_Count_pre1988), sum(df2.Medals_1988), sum(df2.Ath_Count_1988), sum(df2.Medals_post1988), sum(df2.Ath_Count_post1988) from
+  (select df1.region, df1.Sport, df1.Event, df1.Medals_pre1988, df1.Ath_Count_pre1988, df1.Ath_Count_1988, df1.Medals_1988, post1988.Medals_post1988, post1988.Ath_Count_post1988 from
+    (select yyc.region, yyc.Sport, yyc.Event, yyc.Ath_Count_1988,  pre1988.Medals_pre1988, pre1988.Ath_Count_pre1988, yyc.Medals_1988
+    from yyc
+    join pre1988 on yyc.region=pre1988.region and yyc.Event=pre1988.Event) df1
+    join post1988 on df1.region=post1988.region and df1.Event=post1988.Event
+    where df1.region in ("China", "Japan", "South Korea", "Malaysia", "Taiwan")) df2
+
+
+-- COMMAND ----------
+
+select   region, Sport, sum(df2.Medals_pre1988), sum(df2.Medals_1988),  sum(df2.Medals_post1988) from
+  (select df1.region, df1.Sport, df1.Event, df1.Medals_pre1988, df1.Ath_Count_pre1988, df1.Ath_Count_1988, df1.Medals_1988, post1988.Medals_post1988, post1988.Ath_Count_post1988 from
+    (select yyc.region, yyc.Sport, yyc.Event, yyc.Ath_Count_1988,  pre1988.Medals_pre1988, pre1988.Ath_Count_pre1988, yyc.Medals_1988
+    from yyc
+    join pre1988 on yyc.region=pre1988.region and yyc.Event=pre1988.Event) df1
+    join post1988 on df1.region=post1988.region and df1.Event=post1988.Event
+    where df1.region in ("China", "Japan", "South Korea", "Malaysia", "Taiwan")) df2
+group by region, Sport
+
+
+-- COMMAND ----------
+
+select df2.region, sum(df2.Ath_Count_pre1988)+sum(df2.Ath_Count_1988), sum(df2.Ath_Count_1988), sum(df2.Ath_Count_post1988), 1-((0.8*sum(df2.Ath_Count_pre1988)+0.2*sum(df2.Ath_Count_1988))/sum(df2.Ath_Count_post1988)) as Ath_Diff from
+  (select df1.region, df1.Sport, df1.Event, df1.Medals_pre1988, df1.Ath_Count_pre1988, df1.Ath_Count_1988, df1.Medals_1988, post1988.Medals_post1988, post1988.Ath_Count_post1988 from
+    (select yyc.region, yyc.Sport, yyc.Event, yyc.Ath_Count_1988,  pre1988.Medals_pre1988, pre1988.Ath_Count_pre1988, yyc.Medals_1988
+    from yyc
+    join pre1988 on yyc.region=pre1988.region and yyc.Event=pre1988.Event) df1
+    join post1988 on df1.region=post1988.region and df1.Event=post1988.Event) df2
+join event_den on df2.Event=event_den.Event
+group by region
+order by Ath_Diff
+
+
+
+-- COMMAND ----------
+
+/* Regression (Q6) */
+select * from reg
